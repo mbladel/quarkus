@@ -3,10 +3,12 @@ package io.quarkus.hibernate.orm.deployment;
 import static io.quarkus.deployment.annotations.ExecutionTime.RUNTIME_INIT;
 import static io.quarkus.deployment.annotations.ExecutionTime.STATIC_INIT;
 import static io.quarkus.hibernate.orm.deployment.HibernateConfigUtil.firstPresent;
+import static io.quarkus.hibernate.orm.runtime.service.bytecodeprovider.QuarkusRuntimeBytecodeProviderInitiator.INSTANTIATOR_SUFFIX;
 import static org.hibernate.cfg.AvailableSettings.JAKARTA_SHARED_CACHE_MODE;
 import static org.hibernate.cfg.AvailableSettings.USE_DIRECT_REFERENCE_CACHE_ENTRIES;
 import static org.hibernate.cfg.AvailableSettings.USE_QUERY_CACHE;
 import static org.hibernate.cfg.AvailableSettings.USE_SECOND_LEVEL_CACHE;
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 
 import java.io.IOException;
 import java.net.URL;
@@ -44,6 +46,7 @@ import jakarta.xml.bind.JAXBElement;
 import org.hibernate.boot.archive.scan.spi.ClassDescriptor;
 import org.hibernate.boot.archive.scan.spi.PackageDescriptor;
 import org.hibernate.boot.beanvalidation.BeanValidationIntegrator;
+import org.hibernate.bytecode.spi.ReflectionOptimizer;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.id.SequenceMismatchStrategy;
 import org.hibernate.integrator.spi.Integrator;
@@ -80,6 +83,7 @@ import io.quarkus.datasource.common.runtime.DataSourceUtil;
 import io.quarkus.datasource.common.runtime.DatabaseKind;
 import io.quarkus.deployment.Capabilities;
 import io.quarkus.deployment.Capability;
+import io.quarkus.deployment.GeneratedClassGizmoAdaptor;
 import io.quarkus.deployment.IsDevelopment;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
@@ -108,6 +112,10 @@ import io.quarkus.deployment.pkg.steps.NativeOrNativeSourcesBuild;
 import io.quarkus.deployment.recording.RecorderContext;
 import io.quarkus.deployment.util.IoUtil;
 import io.quarkus.deployment.util.ServiceUtil;
+import io.quarkus.gizmo.ClassCreator;
+import io.quarkus.gizmo.MethodCreator;
+import io.quarkus.gizmo.MethodDescriptor;
+import io.quarkus.gizmo.ResultHandle;
 import io.quarkus.hibernate.orm.PersistenceUnit;
 import io.quarkus.hibernate.orm.deployment.HibernateOrmConfigPersistenceUnit.IdentifierQuotingStrategy;
 import io.quarkus.hibernate.orm.deployment.integration.HibernateOrmIntegrationRuntimeConfiguredBuildItem;
@@ -610,6 +618,28 @@ public final class HibernateOrmProcessor {
     public HibernateModelClassCandidatesForFieldAccessBuildItem candidatesForFieldAccess(JpaModelBuildItem jpaModel) {
         // Ask Panache to replace direct access to public fields with calls to accessors for all model classes.
         return new HibernateModelClassCandidatesForFieldAccessBuildItem(jpaModel.getManagedClassNames());
+    }
+
+    @BuildStep
+    void instantiationOptimizers(JpaModelBuildItem jpaModel,
+            CombinedIndexBuildItem index,
+            BuildProducer<GeneratedClassBuildItem> generatedClasses) {
+        GeneratedClassGizmoAdaptor classOutput = new GeneratedClassGizmoAdaptor(generatedClasses, true);
+        for (String i : jpaModel.getManagedClassNames()) {
+            ClassInfo classInfo = index.getIndex().getClassByName(i);
+            if (classInfo != null && !classInfo.isAbstract() && classInfo.hasNoArgsConstructor()) {
+                String className = classInfo.name() + INSTANTIATOR_SUFFIX;
+                try (ClassCreator classCreator = ClassCreator.builder().classOutput(classOutput)
+                        .interfaces(ReflectionOptimizer.InstantiationOptimizer.class).className(className).build()) {
+                    MethodCreator method = classCreator
+                            .getMethodCreator("newInstance", Object.class)
+                            .setModifiers(ACC_PUBLIC);
+                    ResultHandle constructorHandle = method
+                            .newInstance(MethodDescriptor.ofConstructor(classInfo.name().toString()));
+                    method.returnValue(constructorHandle);
+                }
+            }
+        }
     }
 
     @BuildStep

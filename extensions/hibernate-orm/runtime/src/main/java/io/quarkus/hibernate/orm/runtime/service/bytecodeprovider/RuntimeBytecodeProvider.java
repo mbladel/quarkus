@@ -1,5 +1,7 @@
 package io.quarkus.hibernate.orm.runtime.service.bytecodeprovider;
 
+import static io.quarkus.hibernate.orm.runtime.service.bytecodeprovider.QuarkusRuntimeBytecodeProviderInitiator.INSTANTIATOR_SUFFIX;
+
 import java.util.Map;
 
 import org.hibernate.bytecode.enhance.spi.EnhancementContext;
@@ -35,6 +37,25 @@ final class RuntimeBytecodeProvider implements BytecodeProvider {
 
     @Override
     public ReflectionOptimizer getReflectionOptimizer(Class<?> clazz, Map<String, PropertyAccess> propertyAccessMap) {
+        try {
+            Class<?> instantiatorClass = Class.forName(clazz.getName() + INSTANTIATOR_SUFFIX, true,
+                    Thread.currentThread().getContextClassLoader());
+            ReflectionOptimizer.InstantiationOptimizer optimizer = (ReflectionOptimizer.InstantiationOptimizer) instantiatorClass
+                    .getDeclaredConstructor().newInstance();
+            return new ReflectionOptimizer() {
+                @Override
+                public InstantiationOptimizer getInstantiationOptimizer() {
+                    return optimizer;
+                }
+
+                @Override
+                public AccessOptimizer getAccessOptimizer() {
+                    return null;
+                }
+            };
+        } catch (Exception e) {
+            // ignored
+        }
         return null;
     }
 
