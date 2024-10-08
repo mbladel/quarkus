@@ -625,6 +625,7 @@ public final class HibernateOrmProcessor {
             CombinedIndexBuildItem index,
             BuildProducer<GeneratedClassBuildItem> generatedClasses) {
         GeneratedClassGizmoAdaptor classOutput = new GeneratedClassGizmoAdaptor(generatedClasses, true);
+        // Generate InstantiationOptimizers for all managed classes to avoid reflection
         for (String i : jpaModel.getManagedClassNames()) {
             ClassInfo classInfo = index.getIndex().getClassByName(i);
             if (classInfo != null && !classInfo.isAbstract() && classInfo.hasNoArgsConstructor()) {
