@@ -205,7 +205,7 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
     }
 
     _renderAllPUs() {
-        return this._persistenceUnits.length == 0
+        return this._persistenceUnits.length === 0
             ? html`
                     <p>No persistence units were found.
                         <vaadin-button @click="${this.hotReload}" theme="small">Check again</vaadin-button>
@@ -320,7 +320,8 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
     _renderDataAndInput() {
         return html`
             <vaadin-tabsheet class="fill" theme="bordered">
-                <vaadin-button slot="suffix" theme="icon" title="Refresh" aria-label="Refresh">
+                <vaadin-button slot="suffix" theme="icon" aria-label="Refresh">
+                    <vaadin-tooltip .hoverDelay=${500} slot="tooltip" text="Refresh"></vaadin-tooltip>
                     <vaadin-icon @click=${this.hotReload} icon="font-awesome-solid:arrows-rotate"></vaadin-icon>
                 </vaadin-button>
 
@@ -332,19 +333,27 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
 
     _renderSqlInput(){
         if(this._allowHql){
-            return html`<div class="sqlInput">
-                        <qui-code-block @shiftEnter=${this._shiftEnterPressed} content="${this._currentHQL}" id="sql" mode="sql" theme="dark" value='${this._currentHQL}' editable></qui-code-block>
-                        <vaadin-icon class="sqlInputButton" title="Clear" icon="font-awesome-solid:trash" @click=${this._clearHqlInput}></vaadin-icon>
-                        <vaadin-icon class="sqlInputButton" title="Run (Shift + Enter)" icon="font-awesome-solid:play" @click=${this._executeClicked}></vaadin-icon>
-                    </div>`;
+            return html`
+                <div class="sqlInput">
+                    <qui-code-block @shiftEnter=${this._shiftEnterPressed} content="${this._currentHQL}" id="sql"
+                                    mode="sql" theme="dark" value='${this._currentHQL}' editable></qui-code-block>
+                    <vaadin-button slot="suffix" theme="icon" aria-label="Clear">
+                        <vaadin-tooltip .hoverDelay=${500} slot="tooltip" text="Clear"></vaadin-tooltip>
+                        <vaadin-icon @click=${this._clearHqlInput} icon="font-awesome-solid:trash"></vaadin-icon>
+                    </vaadin-button>
+                    <vaadin-button slot="suffix" theme="icon" aria-label="Run">
+                        <vaadin-tooltip .hoverDelay=${500} slot="tooltip" text="Run"></vaadin-tooltip>
+                        <vaadin-icon @click=${this._executeClicked} icon="font-awesome-solid:play"></vaadin-icon>
+                    </vaadin-button>
+                </div>`;
         }else {
-            return html`<vaadin-button theme="small" @click="${this._handleallowHqlChange}">Allow HQL execution from here</vaadin-button>`;
+            return html`<vaadin-button theme="small" @click="${this._handleAllowHqlChange}">Allow HQL execution from here</vaadin-button>`;
         }
     }
 
-    _handleallowHqlChange(){
+    _handleAllowHqlChange(){
         this.configJsonRpc.updateProperty({
-            'name': '%dev.quarkus.datasource.dev-ui.allow-hql',
+            'name': '%dev.quarkus.hibernate-orm.dev-ui.allow-hql',
             'value': 'true'
         }).then(e => {
             this._allowHql = true;

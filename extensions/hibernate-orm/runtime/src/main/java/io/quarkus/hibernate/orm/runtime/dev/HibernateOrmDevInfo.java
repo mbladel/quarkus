@@ -15,6 +15,7 @@ import org.hibernate.boot.query.NamedQueryDefinition;
 import org.hibernate.boot.spi.AbstractNamedQueryDefinition;
 
 import io.quarkus.hibernate.orm.runtime.PersistenceUnitUtil;
+import org.hibernate.engine.spi.SessionFactoryImplementor;
 
 public class HibernateOrmDevInfo {
 
@@ -40,7 +41,7 @@ public class HibernateOrmDevInfo {
     }
 
     public static class PersistenceUnit {
-
+        private final transient SessionFactoryImplementor sessionFactory;
         private final String name;
         private final List<Entity> managedEntities;
         private final List<Query> namedQueries;
@@ -52,10 +53,11 @@ public class HibernateOrmDevInfo {
         private final Supplier<String> dropDDLSupplier;
         private final Supplier<String> updateDDLSupplier;
 
-        public PersistenceUnit(String name, List<Entity> managedEntities,
+        public PersistenceUnit(SessionFactoryImplementor sessionFactory, String name, List<Entity> managedEntities,
                 List<Query> namedQueries,
                 List<Query> namedNativeQueries, Supplier<String> createDDL, Supplier<String> dropDDL,
                 Supplier<String> updateDDLSupplier) {
+            this.sessionFactory = sessionFactory;
             this.name = name;
             this.managedEntities = managedEntities;
             this.namedQueries = namedQueries;
@@ -63,6 +65,10 @@ public class HibernateOrmDevInfo {
             this.createDDLSupplier = createDDL;
             this.dropDDLSupplier = dropDDL;
             this.updateDDLSupplier = updateDDLSupplier;
+        }
+
+        public SessionFactoryImplementor getSessionFactory() {
+            return sessionFactory;
         }
 
         public String getName() {

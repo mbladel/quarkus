@@ -15,6 +15,7 @@ import org.hibernate.boot.query.NamedHqlQueryDefinition;
 import org.hibernate.boot.query.NamedNativeQueryDefinition;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.engine.config.spi.ConfigurationService;
+import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.mapping.PersistentClass;
 import org.hibernate.mapping.Property;
 import org.hibernate.service.ServiceRegistry;
@@ -53,7 +54,7 @@ public class HibernateOrmDevController {
         return info;
     }
 
-    void pushPersistenceUnit(String persistenceUnitName,
+    void pushPersistenceUnit(SessionFactoryImplementor sessionFactoryImplementor, String persistenceUnitName,
             Metadata metadata, ServiceRegistry serviceRegistry, String importFile) {
         List<HibernateOrmDevInfo.Entity> managedEntities = new ArrayList<>();
         for (PersistentClass entityBinding : metadata.getEntityBindings()) {
@@ -83,7 +84,7 @@ public class HibernateOrmDevController {
         DDLSupplier dropDDLSupplier = new DDLSupplier(Action.DROP, metadata, serviceRegistry, importFile);
         DDLSupplier updateDDLSupplier = new DDLSupplier(Action.UPDATE, metadata, serviceRegistry, importFile);
 
-        info.add(new HibernateOrmDevInfo.PersistenceUnit(persistenceUnitName, managedEntities,
+        info.add(new HibernateOrmDevInfo.PersistenceUnit(sessionFactoryImplementor, persistenceUnitName, managedEntities,
                 namedQueries, namedNativeQueries, createDDLSupplier, dropDDLSupplier, updateDDLSupplier));
     }
 

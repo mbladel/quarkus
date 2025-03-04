@@ -47,7 +47,7 @@ public class HibernateOrmDevUIProcessor {
                 .icon("font-awesome-solid:play")
                 .metadata("allowHql", String.valueOf(config.devui().allowHql())));
 
-        // todo marco : add tests for each (?) back-end method
+        // todo marco : add tests for each (?) new back-end method (executeHQL)
 
         return card;
     }
