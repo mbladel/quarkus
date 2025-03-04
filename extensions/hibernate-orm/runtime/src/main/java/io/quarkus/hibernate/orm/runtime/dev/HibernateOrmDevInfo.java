@@ -15,6 +15,8 @@ import org.hibernate.boot.query.NamedQueryDefinition;
 import org.hibernate.boot.spi.AbstractNamedQueryDefinition;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import io.quarkus.hibernate.orm.runtime.PersistenceUnitUtil;
 
 public class HibernateOrmDevInfo {
@@ -41,6 +43,7 @@ public class HibernateOrmDevInfo {
     }
 
     public static class PersistenceUnit {
+        @JsonIgnore
         private final transient SessionFactoryImplementor sessionFactory;
         private final String name;
         private final List<Entity> managedEntities;
@@ -67,6 +70,7 @@ public class HibernateOrmDevInfo {
             this.updateDDLSupplier = updateDDLSupplier;
         }
 
+        // Method name must not be `getSessionFactory` to exclude it from JSON serialization
         public SessionFactoryImplementor sessionFactory() {
             return sessionFactory;
         }
@@ -118,14 +122,18 @@ public class HibernateOrmDevInfo {
     }
 
     public static class Entity {
+        private final String name;
         private final String className;
         private final String tableName;
-        private final List<String> columns;
 
-        public Entity(String className, String tableName, List<String> columns) {
+        public Entity(String name, String className, String tableName) {
+            this.name = name;
             this.className = className;
             this.tableName = tableName;
-            this.columns = columns;
+        }
+
+        public String getName() {
+            return name;
         }
 
         public String getClassName() {
@@ -134,10 +142,6 @@ public class HibernateOrmDevInfo {
 
         public String getTableName() {
             return tableName;
-        }
-
-        public List<String> getColumns() {
-            return columns;
         }
     }
 
