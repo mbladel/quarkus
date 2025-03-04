@@ -40,11 +40,12 @@ public class HibernateOrmDevJsonRpcService {
         return getInfo().getPersistenceUnits().stream().filter(pu -> persistenceUnitName.equals(pu.getName())).findFirst();
     }
 
-    public DataSet executeSQL(String persistenceUnit, String hql, Integer pageNumber, Integer pageSize) {
+    public DataSet executeHQL(String persistenceUnit, String hql, Integer pageNumber, Integer pageSize) {
         if (isDev && hqlIsValid(hql)) {
             Optional<HibernateOrmDevInfo.PersistenceUnit> pu = getPersistenceUnit(persistenceUnit);
             if (pu.isPresent()) {
-                SessionFactoryImplementor sf = pu.get().getSessionFactory();
+                //noinspection resource
+                SessionFactoryImplementor sf = pu.get().sessionFactory();
                 return sf.fromTransaction(session -> {
                     try {
                         SelectionQuery<Object> query = session.createSelectionQuery(hql, Object.class);
@@ -52,7 +53,7 @@ public class HibernateOrmDevJsonRpcService {
                         // execute count query before applying offset and limit
                         long resultCount = query.getResultCount();
 
-                        query.setFirstResult((pageNumber - 1) * pageSize + 1);
+                        query.setFirstResult((pageNumber - 1) * pageSize);
                         query.setMaxResults(pageSize);
                         List<Object> resultList = query.getResultList();
 

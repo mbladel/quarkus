@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
-import io.quarkus.agroal.runtime.DataSourcesJdbcBuildTimeConfig;
 import io.quarkus.hibernate.orm.runtime.PersistenceUnitUtil;
 import io.quarkus.hibernate.orm.runtime.config.DatabaseOrmCompatibilityVersion;
 import io.quarkus.runtime.annotations.ConfigDocMapKey;

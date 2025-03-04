@@ -1,4 +1,5 @@
 import {css, html, QwcHotReloadElement} from 'qwc-hot-reload-element';
+import {RouterController} from 'router-controller';
 import {JsonRpc} from 'jsonrpc';
 import '@vaadin/icon';
 import '@vaadin/button';
@@ -12,21 +13,17 @@ import {notifier} from 'notifier';
 
 export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
     jsonRpc = new JsonRpc(this);
+    configJsonRpc = new JsonRpc("devui-configuration");
+
+    routerController = new RouterController(this);
 
     static styles = css`
-        :host {
-            display: flex;
-            padding-left: 10px;
-            padding-right: 10px;
+        .bordered {
+            border: 1px solid var(--lumo-contrast-20pct);
+            border-radius: var(--lumo-border-radius-l);
+            padding: var(--lumo-space-s) var(--lumo-space-m);
         }
-
-        .full-height {
-            height: 100%;
-            width: 100%;
-        }
-
-        // todo marco : copied this from agroal extension, remove what's not necessary
-
+        
         .dataSources {
             display: flex;
             flex-direction: column;
@@ -56,11 +53,19 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
             display: flex;
             height: 100%;
             gap: 20px;
+            padding-right: 20px;
+        }
+        
+        .tables {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         .tableData {
+            display: flex;
+            flex-direction: column;
             width: 100%;
-            padding-right: 20px;
         }
 
         .tablesCard {
@@ -102,7 +107,7 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
             cursor: pointer;
             color: var(--lumo-contrast-50pct);
         }
-        
+
         .sqlInputButton:hover {
             color: var(--lumo-contrast-80pct);
         }
@@ -141,8 +146,7 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
 
     static properties = {
         _persistenceUnits: {state: true, type: Array},
-        _selectedPersistenceUnits: {state: true},
-        _selectedDataSource: {state: true},
+        _selectedPersistenceUnit: {state: true},
         _selectedEntity: {state: true},
         _selectedEntityIndex: {state: true},
         _currentHQL: {state: true},
@@ -155,7 +159,7 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
     constructor() {
         super();
         this._persistenceUnits = [];
-        this._selectedDataSource = null;
+        this._selectedPersistenceUnit = null;
         this._selectedEntity = null;
         this._selectedEntityIndex = 0;
         this._currentHQL = null;
@@ -169,9 +173,9 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
         super.connectedCallback();
 
         const page = this.routerController.getCurrentPage();
-        if(page && page.metadata){
+        if (page && page.metadata) {
             this._allowHql = (page.metadata.allowHql === "true");
-        }else{
+        } else {
             this._allowHql = false;
         }
 
@@ -181,6 +185,12 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
     hotReload() {
         this.jsonRpc.getInfo().then(response => {
             this._persistenceUnits = response.result.persistenceUnits;
+            console.warn("PUs:", this._persistenceUnits);
+            this._selectedPersistenceUnit = this._persistenceUnits[0];
+            console.log("Selected PU:", this._selectedPersistenceUnit);
+            this._selectedEntity = this._selectedPersistenceUnit.managedEntities[0];
+            console.log("Selected entity:", this._selectedPersistenceUnit);
+            // this._clearHqlInput();
         }).catch(error => {
             console.error("Failed to fetch persistence units:", error);
             this._persistenceUnits = [];
@@ -212,12 +222,6 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
                     </p>`
             : html`
                     <div class="dataSources">
-                        <div class="dataSourcesHeader">
-                            <div class="dataSourcesHeaderLeft">
-                                ${this._renderDatasourcesComboBox()}
-                                ${this._renderSelectedDatasource()}
-                            </div>
-                        </div>
                         ${this._renderTablesAndData()}
                     </div>`;
     }
@@ -228,17 +232,22 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
                     label="Persistence Unit"
                     item-label-path="name"
                     item-value-path="name"
-                    .items="${Object.values(this._persistenceUnits)}"
-                    .value="${Object.values(this._persistenceUnits)[0]?.name || ''}"
+                    .items="${this._persistenceUnits}"
+                    .value="${this._persistenceUnits[0]?.name || ''}"
                     @value-changed="${this._onDataSourceChanged}"
                     .allowCustomValue="${false}"
             ></vaadin-combo-box>
         `;
     }
 
+    _onDataSourceChanged(event) {
+        const selectedValue = event.detail.value;
+        this._selectedPersistenceUnit = this._persistenceUnits.find(unit => unit.name === selectedValue);
+    }
+
     _renderSelectedDatasource() {
-        if (this._selectedDataSource) {
-            return html`<code>${this._selectedDataSource.name}</code>`; // todo marco : render something useful here
+        if (this._selectedPersistenceUnit) {
+            return html`<code>${this._selectedPersistenceUnit.name}</code>`; // todo marco : render something useful here
         }
     }
 
@@ -246,21 +255,22 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
         return html`
             <div class="tablesAndData">
                 <div class="tables">
+                    ${this._renderDatasourcesComboBox()}
                     ${this._renderTables()}
                 </div>
-                <div class="tableData">
+                <div class="tableData bordered">
                     ${this._renderDataAndInput()}
                 </div>
             </div>`;
     }
 
     _renderTables() {
-        if (this._persistenceUnits) {
+        if (this._selectedPersistenceUnit) {
             return html`
                 <qui-card class="tablesCard" header="Tables">
                     <div slot="content">
                         <vaadin-list-box selected="0" @selected-changed="${this._onTableChanged}">
-                            ${this._persistenceUnits.managedEntities.map((entity) =>
+                            ${this._selectedPersistenceUnit.managedEntities.map((entity) =>
                                     html`
                                         <vaadin-item>${entity.className}</vaadin-item>`
                             )}
@@ -274,12 +284,12 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
 
     _onTableChanged(event) {
         this._selectedEntityIndex = event.detail.value;
-        this._selectedEntity = this._persistenceUnits.managedEntities[this._selectedEntityIndex];
+        this._selectedEntity = this._selectedPersistenceUnit.managedEntities[this._selectedEntityIndex];
         this._clearHqlInput();
     }
 
     _clearHqlInput() {
-        if (this._selectedTable) {
+        if (this._selectedEntity) {
             this._executeHQL("from " + this._selectedEntity.className);
         }
     }
@@ -295,18 +305,17 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
     }
 
     _executeCurrentSQL() {
-        if (this._currentSQL) {
+        if (this._currentHQL) {
+            console.warn("Executing HQL:", this._currentHQL);
             this.jsonRpc.executeHQL({
-                pu: this._selectedDataSource.name,
+                persistenceUnit: this._selectedPersistenceUnit.name,
                 hql: this._currentHQL,
                 pageNumber: this._currentPageNumber,
                 pageSize: this._pageSize
             }).then(jsonRpcResponse => {
+                console.log("Execute response:", jsonRpcResponse);
                 if (jsonRpcResponse.result.error) {
                     notifier.showErrorMessage(jsonRpcResponse.result.error);
-                } else if (jsonRpcResponse.result.message) {
-                    notifier.showInfoMessage(jsonRpcResponse.result.message);
-                    this._clearHqlInput();
                 } else {
                     this._currentDataSet = jsonRpcResponse.result;
                     this._currentNumberOfPages = this._getNumberOfPages();
@@ -319,20 +328,12 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
 
     _renderDataAndInput() {
         return html`
-            <vaadin-tabsheet class="fill" theme="bordered">
-                <vaadin-button slot="suffix" theme="icon" aria-label="Refresh">
-                    <vaadin-tooltip .hoverDelay=${500} slot="tooltip" text="Refresh"></vaadin-tooltip>
-                    <vaadin-icon @click=${this.hotReload} icon="font-awesome-solid:arrows-rotate"></vaadin-icon>
-                </vaadin-button>
-
-                ${this._renderSqlInput()}
-
-                <div tab="data-tab" style="height:100%;">${this._renderTableData()}</div>
-            </vaadin-tabsheet>`;
+            ${this._renderSqlInput()}
+            <div tab="data-tab" style="height:100%;">${this._renderTableData()}</div>`;
     }
 
-    _renderSqlInput(){
-        if(this._allowHql){
+    _renderSqlInput() {
+        if (this._allowHql) {
             return html`
                 <div class="sqlInput">
                     <qui-code-block @shiftEnter=${this._shiftEnterPressed} content="${this._currentHQL}" id="sql"
@@ -346,12 +347,14 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
                         <vaadin-icon @click=${this._executeClicked} icon="font-awesome-solid:play"></vaadin-icon>
                     </vaadin-button>
                 </div>`;
-        }else {
-            return html`<vaadin-button theme="small" @click="${this._handleAllowHqlChange}">Allow HQL execution from here</vaadin-button>`;
+        } else {
+            return html`
+                <vaadin-button theme="small" @click="${this._handleAllowHqlChange}">Allow HQL execution from here
+                </vaadin-button>`;
         }
     }
 
-    _handleAllowHqlChange(){
+    _handleAllowHqlChange() {
         this.configJsonRpc.updateProperty({
             'name': '%dev.quarkus.hibernate-orm.dev-ui.allow-hql',
             'value': 'true'
@@ -360,17 +363,18 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
         });
     }
 
-    _shiftEnterPressed(event){
-        this._executeSQL(event.detail.content);
+    _shiftEnterPressed(event) {
+        this._executeHQL(event.detail.content);
     }
 
     _renderTableData() {
-        if (this._selectedEntity && this._currentDataSet && this._currentDataSet.cols) {
+        // todo marco : is it ok to use Object.keys() for column names ?
+        if (this._selectedEntity && this._currentDataSet) {
             return html`
                 <div class="data">
-                    <vaadin-grid .items="${this._currentDataSet.data}" theme="row-stripes no-border" class="fill"
+                    <vaadin-grid .items="${this._currentDataSet.data}" theme="row-stripes no-border" style="width:100%;max-height:100%;">
                                  column-reordering-allowed>
-                        ${this._currentDataSet.cols.map((col) =>
+                        ${Object.keys(this._currentDataSet.data[0]).map((col) =>
                                 this._renderTableHeader(col)
                         )}
                         <span slot="empty-state">No data.</span>
@@ -389,7 +393,7 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
 
     _renderTableHeader(col) {
         return html`
-            <vaadin-grid-sort-column path="${col}" header="${heading}" auto-width resizable ${columnBodyRenderer(
+            <vaadin-grid-sort-column path="${col}" header="${col}" auto-width resizable ${columnBodyRenderer(
                     (item) => this._cellRenderer(col, item),
                     []
             )}></vaadin-grid-sort-column>`;
@@ -414,34 +418,36 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
             </div>`;
     }
 
-    _renderPreviousPageButton(){
+    _renderPreviousPageButton() {
         let klas = "pageButton";
-        if(this._currentPageNumber === 1){
+        if (this._currentPageNumber === 1) {
             klas = "hidden";
         }
-        return html`<vaadin-button theme="icon tertiary" aria-label="Previous" @click=${this._previousPage} class="${klas}">
-                        <vaadin-icon icon="font-awesome-solid:circle-chevron-left"></vaadin-icon>
-                    </vaadin-button>`;
+        return html`
+            <vaadin-button theme="icon tertiary" aria-label="Previous" @click=${this._previousPage} class="${klas}">
+                <vaadin-icon icon="font-awesome-solid:circle-chevron-left"></vaadin-icon>
+            </vaadin-button>`;
     }
 
-    _renderNextPageButton(){
+    _renderNextPageButton() {
         let klas = "pageButton";
-        if(this._currentPageNumber === this._currentNumberOfPages){
+        if (this._currentPageNumber === this._currentNumberOfPages) {
             klas = "hidden";
         }
-        return html`<vaadin-button theme="icon tertiary" aria-label="Next" @click=${this._nextPage} class="${klas}">
-                        <vaadin-icon icon="font-awesome-solid:circle-chevron-right"></vaadin-icon>
-                    </vaadin-button>`;
+        return html`
+            <vaadin-button theme="icon tertiary" aria-label="Next" @click=${this._nextPage} class="${klas}">
+                <vaadin-icon icon="font-awesome-solid:circle-chevron-right"></vaadin-icon>
+            </vaadin-button>`;
     }
 
-    _previousPage(){
-        if(this._currentPageNumber!==1){
+    _previousPage() {
+        if (this._currentPageNumber !== 1) {
             this._currentPageNumber = this._currentPageNumber - 1;
             this._executeCurrentSQL();
         }
     }
 
-    _nextPage(){
+    _nextPage() {
         this._currentPageNumber = this._currentPageNumber + 1;
         this._executeCurrentSQL();
     }

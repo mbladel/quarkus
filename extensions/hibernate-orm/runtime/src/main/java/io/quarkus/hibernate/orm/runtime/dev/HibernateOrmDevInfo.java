@@ -13,9 +13,9 @@ import org.hibernate.boot.query.NamedHqlQueryDefinition;
 import org.hibernate.boot.query.NamedNativeQueryDefinition;
 import org.hibernate.boot.query.NamedQueryDefinition;
 import org.hibernate.boot.spi.AbstractNamedQueryDefinition;
+import org.hibernate.engine.spi.SessionFactoryImplementor;
 
 import io.quarkus.hibernate.orm.runtime.PersistenceUnitUtil;
-import org.hibernate.engine.spi.SessionFactoryImplementor;
 
 public class HibernateOrmDevInfo {
 
@@ -67,7 +67,7 @@ public class HibernateOrmDevInfo {
             this.updateDDLSupplier = updateDDLSupplier;
         }
 
-        public SessionFactoryImplementor getSessionFactory() {
+        public SessionFactoryImplementor sessionFactory() {
             return sessionFactory;
         }
 

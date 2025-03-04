@@ -2,7 +2,6 @@ package io.quarkus.hibernate.orm.deployment.dev;
 
 import java.util.List;
 
-import io.quarkus.agroal.runtime.DataSourcesJdbcBuildTimeConfig;
 import io.quarkus.agroal.spi.JdbcInitialSQLGeneratorBuildItem;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.processor.DotNames;

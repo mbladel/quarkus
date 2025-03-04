@@ -115,7 +115,7 @@ public class HibernateOrmDevController {
     void clearData() {
         info = new HibernateOrmDevInfo();
     }
-    
+
     private static String generateDDL(Action action, Metadata metadata, ServiceRegistry ssr,
             String importFiles) {
         //TODO see https://hibernate.atlassian.net/browse/HHH-16207
