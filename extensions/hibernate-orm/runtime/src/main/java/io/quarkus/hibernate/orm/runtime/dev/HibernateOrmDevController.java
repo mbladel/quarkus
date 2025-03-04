@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.hibernate.boot.Metadata;
 import org.hibernate.boot.query.NamedHqlQueryDefinition;
@@ -15,6 +16,7 @@ import org.hibernate.boot.query.NamedNativeQueryDefinition;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.engine.config.spi.ConfigurationService;
 import org.hibernate.mapping.PersistentClass;
+import org.hibernate.mapping.Property;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.tool.schema.Action;
 import org.hibernate.tool.schema.SourceType;
@@ -55,8 +57,8 @@ public class HibernateOrmDevController {
             Metadata metadata, ServiceRegistry serviceRegistry, String importFile) {
         List<HibernateOrmDevInfo.Entity> managedEntities = new ArrayList<>();
         for (PersistentClass entityBinding : metadata.getEntityBindings()) {
-            managedEntities
-                    .add(new HibernateOrmDevInfo.Entity(entityBinding.getClassName(), entityBinding.getTable().getName()));
+            managedEntities.add(new HibernateOrmDevInfo.Entity(entityBinding.getClassName(), entityBinding.getTable().getName(),
+                    getColumns(entityBinding)));
         }
 
         List<HibernateOrmDevInfo.Query> namedQueries = new ArrayList<>();
@@ -85,6 +87,10 @@ public class HibernateOrmDevController {
                 namedQueries, namedNativeQueries, createDDLSupplier, dropDDLSupplier, updateDDLSupplier));
     }
 
+    private static List<String> getColumns(PersistentClass persistentClass) {
+        return persistentClass.getProperties().stream().map(Property::getName).collect(Collectors.toList());
+    }
+
     class DDLSupplier implements Supplier<String> {
 
         private final Action action;
@@ -108,7 +114,7 @@ public class HibernateOrmDevController {
     void clearData() {
         info = new HibernateOrmDevInfo();
     }
-
+    
     private static String generateDDL(Action action, Metadata metadata, ServiceRegistry ssr,
             String importFiles) {
         //TODO see https://hibernate.atlassian.net/browse/HHH-16207

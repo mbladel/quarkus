@@ -112,13 +112,14 @@ public class HibernateOrmDevInfo {
     }
 
     public static class Entity {
-
         private final String className;
         private final String tableName;
+        private final List<String> columns;
 
-        public Entity(String className, String tableName) {
+        public Entity(String className, String tableName, List<String> columns) {
             this.className = className;
             this.tableName = tableName;
+            this.columns = columns;
         }
 
         public String getClassName() {
@@ -129,6 +130,9 @@ public class HibernateOrmDevInfo {
             return tableName;
         }
 
+        public List<String> getColumns() {
+            return columns;
+        }
     }
 
     public static class Query {

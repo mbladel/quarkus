@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
+import io.quarkus.agroal.runtime.DataSourcesJdbcBuildTimeConfig;
 import io.quarkus.hibernate.orm.runtime.PersistenceUnitUtil;
 import io.quarkus.hibernate.orm.runtime.config.DatabaseOrmCompatibilityVersion;
 import io.quarkus.runtime.annotations.ConfigDocMapKey;
@@ -89,6 +90,13 @@ public interface HibernateOrmConfig {
      * Configuration related to metrics.
      */
     HibernateOrmConfigMetric metrics();
+
+    /**
+     * Dev UI.
+     */
+    @WithDefaults
+    @WithName("dev-ui")
+    HibernateOrmConfigDevUI devui();
 
     default boolean isAnyNonPersistenceXmlPropertySet() {
         // Do NOT include persistenceXml in here.
@@ -182,4 +190,18 @@ public interface HibernateOrmConfig {
         }
     }
 
+    @ConfigGroup
+    interface HibernateOrmConfigDevUI {
+        /**
+         * Activate or disable the dev ui page.
+         */
+        @WithDefault("true")
+        public boolean enabled();
+
+        /**
+         * Allow hql queries in the Dev UI page
+         */
+        @WithDefault("false")
+        public boolean allowHql();
+    }
 }

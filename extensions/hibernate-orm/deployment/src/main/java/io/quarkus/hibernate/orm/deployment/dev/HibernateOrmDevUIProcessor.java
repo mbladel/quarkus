@@ -2,6 +2,7 @@ package io.quarkus.hibernate.orm.deployment.dev;
 
 import java.util.List;
 
+import io.quarkus.agroal.runtime.DataSourcesJdbcBuildTimeConfig;
 import io.quarkus.agroal.spi.JdbcInitialSQLGeneratorBuildItem;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.processor.DotNames;
@@ -12,6 +13,7 @@ import io.quarkus.deployment.annotations.BuildSteps;
 import io.quarkus.devui.spi.JsonRPCProvidersBuildItem;
 import io.quarkus.devui.spi.page.CardPageBuildItem;
 import io.quarkus.devui.spi.page.Page;
+import io.quarkus.hibernate.orm.deployment.HibernateOrmConfig;
 import io.quarkus.hibernate.orm.deployment.HibernateOrmEnabled;
 import io.quarkus.hibernate.orm.deployment.PersistenceUnitDescriptorBuildItem;
 import io.quarkus.hibernate.orm.runtime.PersistenceUnitUtil;
@@ -22,7 +24,7 @@ import io.quarkus.hibernate.orm.runtime.dev.HibernateOrmDevJsonRpcService;
 public class HibernateOrmDevUIProcessor {
 
     @BuildStep
-    public CardPageBuildItem create() {
+    public CardPageBuildItem create(HibernateOrmConfig config) {
         CardPageBuildItem card = new CardPageBuildItem();
         card.addPage(Page.webComponentPageBuilder()
                 .title("Persistence Units")
@@ -39,6 +41,13 @@ public class HibernateOrmDevUIProcessor {
                 .componentLink("hibernate-orm-named-queries.js")
                 .icon("font-awesome-solid:circle-question")
                 .dynamicLabelJsonRPCMethodName("getNumberOfNamedQueries"));
+        card.addPage(Page.webComponentPageBuilder()
+                .title("HQL Console")
+                .componentLink("hibernate-orm-hql-console.js")
+                .icon("font-awesome-solid:play")
+                .metadata("allowHql", String.valueOf(config.devui().allowHql())));
+
+        // todo marco : add tests for each (?) back-end method
 
         return card;
     }
