@@ -3,8 +3,6 @@ package io.quarkus.hibernate.orm.runtime.dev;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.microprofile.config.Config;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.query.SelectionQuery;
 
@@ -12,12 +10,9 @@ import io.quarkus.runtime.LaunchMode;
 
 public class HibernateOrmDevJsonRpcService {
     private boolean isDev = false;
-    private boolean allowHql = false;
 
     public HibernateOrmDevJsonRpcService() {
         this.isDev = LaunchMode.current() == LaunchMode.DEVELOPMENT && !LaunchMode.isRemoteDev();
-        Config config = ConfigProvider.getConfig();
-        this.allowHql = config.getOptionalValue("quarkus.hibernate-orm.dev-ui.allow-hql", Boolean.class).orElse(false);
     }
 
     public HibernateOrmDevInfo getInfo() {
@@ -46,7 +41,7 @@ public class HibernateOrmDevJsonRpcService {
             if (pu.isPresent()) {
                 //noinspection resource
                 SessionFactoryImplementor sf = pu.get().sessionFactory();
-                return sf.fromTransaction(session -> {
+                return sf.fromSession(session -> {
                     try {
                         SelectionQuery<Object> query = session.createSelectionQuery(hql, Object.class);
 
@@ -57,8 +52,7 @@ public class HibernateOrmDevJsonRpcService {
                         query.setMaxResults(pageSize);
                         List<Object> resultList = query.getResultList();
 
-                        // todo marco : for now we rely on automatic marshalling of results
-                        //  when ready, we should use the custom Hibernate Serializer
+                        // todo : for now we rely on automatic marshalling of results
                         return new DataSet(resultList, resultCount, null);
                     } catch (Exception ex) {
                         return new DataSet(null, -1, ex.getMessage());
@@ -73,7 +67,7 @@ public class HibernateOrmDevJsonRpcService {
     }
 
     private boolean hqlIsValid(String hql) {
-        return allowHql && hql != null && !hql.trim().isEmpty();
+        return hql != null && !hql.trim().isEmpty();
     }
 
     private record DataSet(List<Object> data, long totalNumberOfElements, String error) {

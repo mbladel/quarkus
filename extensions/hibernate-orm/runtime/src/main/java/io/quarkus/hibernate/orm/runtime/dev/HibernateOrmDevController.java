@@ -2,11 +2,7 @@ package io.quarkus.hibernate.orm.runtime.dev;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Supplier;
 
 import org.hibernate.boot.Metadata;
@@ -59,6 +55,8 @@ public class HibernateOrmDevController {
             managedEntities.add(new HibernateOrmDevInfo.Entity(entityBinding.getJpaEntityName(), entityBinding.getClassName(),
                     entityBinding.getTable().getName()));
         }
+        // Sort entities alphabetically by JPA entity name
+        managedEntities.sort(Comparator.comparing(HibernateOrmDevInfo.Entity::getName));
 
         List<HibernateOrmDevInfo.Query> namedQueries = new ArrayList<>();
         {
@@ -68,6 +66,8 @@ public class HibernateOrmDevController {
                 namedQueries.add(new HibernateOrmDevInfo.Query(queryDefinition));
             }
         }
+        // Sort named queries alphabetically by name
+        namedQueries.sort(Comparator.comparing(HibernateOrmDevInfo.Query::getName));
 
         List<HibernateOrmDevInfo.Query> namedNativeQueries = new ArrayList<>();
         {
