@@ -1,8 +1,11 @@
 package io.quarkus.hibernate.orm.runtime.dev;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.hibernate.ScrollMode;
+import org.hibernate.ScrollableResults;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.query.SelectionQuery;
 
@@ -48,12 +51,19 @@ public class HibernateOrmDevJsonRpcService {
                         // execute count query before applying offset and limit
                         long resultCount = query.getResultCount();
 
-                        query.setFirstResult((pageNumber - 1) * pageSize);
-                        query.setMaxResults(pageSize);
-                        List<Object> resultList = query.getResultList();
+                        try (ScrollableResults<Object> scroll = query.scroll(ScrollMode.SCROLL_INSENSITIVE)) {
+                            scroll.scroll((pageNumber - 1) * pageSize + 1);
+                            List<Object> results = new ArrayList<>();
+                            int i = 0;
+                            while (pageSize > i++) {
+                                results.add(scroll.get());
+                                if (!scroll.next())
+                                    break;
+                            }
 
-                        // todo : for now we rely on automatic marshalling of results
-                        return new DataSet(resultList, resultCount, null);
+                            // todo : for now we rely on automatic marshalling of results
+                            return new DataSet(results, resultCount, null);
+                        }
                     } catch (Exception ex) {
                         return new DataSet(null, -1, ex.getMessage());
                     }
