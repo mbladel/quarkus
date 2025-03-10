@@ -34,13 +34,13 @@ public class HibernateOrmDevJsonRpcService {
         return getInfo().getNumberOfNamedQueries();
     }
 
-    private Optional<HibernateOrmDevInfo.PersistenceUnit> getPersistenceUnit(String persistenceUnitName) {
+    private Optional<HibernateOrmDevInfo.PersistenceUnit> findPersistenceUnit(String persistenceUnitName) {
         return getInfo().getPersistenceUnits().stream().filter(pu -> persistenceUnitName.equals(pu.getName())).findFirst();
     }
 
     public DataSet executeHQL(String persistenceUnit, String hql, Integer pageNumber, Integer pageSize) {
         if (isDev && hqlIsValid(hql)) {
-            Optional<HibernateOrmDevInfo.PersistenceUnit> pu = getPersistenceUnit(persistenceUnit);
+            Optional<HibernateOrmDevInfo.PersistenceUnit> pu = findPersistenceUnit(persistenceUnit);
             if (pu.isPresent()) {
                 //noinspection resource
                 SessionFactoryImplementor sf = pu.get().sessionFactory();
