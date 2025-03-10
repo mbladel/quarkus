@@ -349,9 +349,7 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
         if (this._selectedEntity && this._currentDataSet) {
             return html`
                 <div class="data">
-                    <vaadin-grid .items="${this._currentDataSet.data}" theme="row-stripes no-border"
-                                 style="width:100%;max-height:100%;">
-                        column-reordering-allowed>
+                    <vaadin-grid .items="${this._currentDataSet.data}" theme="row-stripes no-border" class="fill" column-reordering-allowed>
                         ${Object.keys(this._currentDataSet.data[0]).map((col) =>
                                 this._renderTableHeader(col)
                         )}
@@ -371,17 +369,8 @@ export class HibernateOrmHqlConsoleComponent extends QwcHotReloadElement {
 
     _renderTableHeader(col) {
         return html`
-            <vaadin-grid-sort-column path="${col}" header="${col}" auto-width resizable ${columnBodyRenderer(
-                    (item) => this._cellRenderer(col, item),
-                    []
-            )}></vaadin-grid-sort-column>`;
-    }
-
-    _cellRenderer(columnName, item) {
-        const value = item[columnName];
-        if (value) {
-            return html`<span>${value}</span>`;
-        }
+            <vaadin-grid-sort-column path="${col}" header="${col}" auto-width" resizable></vaadin-grid-sort-column>
+        `;
     }
 
     // *** pager and page handling ***
